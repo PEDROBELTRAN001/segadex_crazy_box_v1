@@ -11,7 +11,8 @@ var state_scenes = {
 	StateManager.States.READY_TO_HIT: preload("res://states/ReadyToHitState.gd"),
 	StateManager.States.SCORE_RISE: preload("res://states/ScoreRiseState.gd"),
 	StateManager.States.SHOW_WIN: preload("res://states/ShowWinState.gd"),
-	StateManager.States.SHOW_LOSE: preload("res://states/ShowLoseState.gd")
+	StateManager.States.SHOW_LOSE: preload("res://states/ShowLoseState.gd"),
+	StateManager.States.PROPAGANDA: preload("res://states/PropagandaState.gd") # NUEVA LÍNEA
 }
 
 func _ready() -> void:

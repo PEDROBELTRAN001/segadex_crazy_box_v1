@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 PrizeManager="*uid://5d3d7ie42f0w"
 StateManager="*uid://b3etdvyi3ipav"
+PropagandaManager="*uid://c786up4iq1au6"
 
 [display]
 
