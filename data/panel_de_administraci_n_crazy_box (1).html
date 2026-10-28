@@ -1,0 +1,1336 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crazy Box - Panel de Administración de Premios (SEGADEX)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        arcade: {
+                            bg: '#0b0f19',
+                            card: '#131b2e',
+                            border: '#23304d',
+                            amber: '#f59e0b',
+                            cyan: '#06b6d4',
+                            emerald: '#10b981',
+                            rose: '#f43f5e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0b0f19;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.10) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.10) 0px, transparent 50%);
+            color: #f1f5f9;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0f19;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #23304d;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3b4f7a;
+        }
+        .neon-border-cyan {
+            box-shadow: 0 0 15px -3px rgba(6, 182, 212, 0.25);
+        }
+        .neon-border-amber {
+            box-shadow: 0 0 15px -3px rgba(245, 158, 11, 0.3);
+        }
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans antialiased selection:bg-cyan-500 selection:text-slate-950">
+
+    <!-- Hidden Fallback File Input for Browsers without File System Access API -->
+    <input type="file" id="fallbackFileInput" accept=".json,application/json" class="hidden">
+
+    <!-- TOP NAVIGATION & DIRECT FILE CONNECTION BAR -->
+    <header class="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                
+                <!-- Brand & Connection Status -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/20 border border-amber-400/30">
+                            <i class="fa-solid fa-hand-fist text-slate-950 text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center flex-wrap gap-2">
+                                <span class="text-xs font-mono uppercase tracking-widest px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-semibold">SEGADEX</span>
+                                <span id="connectionBadge" class="inline-flex items-center gap-1.5 text-xs font-mono px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                                    Buscando data/prizes_config.json...
+                                </span>
+                            </div>
+                            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white mt-0.5">
+                                Crazy Box <span class="text-slate-400 font-normal">| Gestor <code class="font-mono text-sm text-cyan-400">res://data/prizes_config.json</code></span>
+                            </h1>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Toolbar -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <!-- Quick Reconnect Button (Shown automatically when IndexedDB has the saved handle) -->
+                    <button id="btnQuickReconnect" onclick="reconnectSavedHandle()"
+                        class="hidden inline-flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-bold rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 transition shadow-lg shadow-cyan-500/20 animate-pulse">
+                        <i class="fa-solid fa-bolt"></i>
+                        <span>Activar Guardado Rápido (<code class="font-mono">data/prizes_config.json</code>)</span>
+                    </button>
+
+                    <!-- Open / Connect Local JSON (First time or change file) -->
+                    <button onclick="connectJsonFile()" id="btnConnectFile"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 transition shadow-sm">
+                        <i class="fa-solid fa-link"></i>
+                        <span id="btnConnectLabel">Vincular <code class="font-mono">data/prizes_config.json</code></span>
+                    </button>
+
+                    <!-- Reload from disk -->
+                    <button onclick="reloadFromConnectedSource()" title="Recargar datos actuales desde data/prizes_config.json"
+                        class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+                        <i class="fa-solid fa-arrows-rotate text-cyan-400"></i>
+                        <span>Leer Disco</span>
+                    </button>
+
+                    <!-- Reset Records to Record Fijo (F5 simulator) -->
+                    <button onclick="resetAllRecordsToFixed()" title="Copia el valor de record_fijo hacia record en los 6 premios (Igual que F5 en Godot)"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/40 transition">
+                        <i class="fa-solid fa-rotate"></i>
+                        <span>Igualar a Récord Fijo (F5)</span>
+                    </button>
+
+                    <!-- Save Direct to Disk -->
+                    <button onclick="saveToConnectedFile()" id="btnSaveDirect" title="Atajo: Ctrl + S"
+                        class="inline-flex items-center gap-2 px-4 py-2 text-xs sm:text-sm font-bold rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition shadow-lg shadow-emerald-500/20">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Guardar (<kbd class="font-mono text-[11px] bg-emerald-600/30 px-1 rounded">Ctrl+S</kbd>)</span>
+                    </button>
+
+                    <!-- Zero-Click Python Auto-Bridge Modal Button -->
+                    <button onclick="toggleBridgeModal(true)" title="Ver script opcional en Python para conexión 100% automática sin permisos del navegador"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-2 text-xs font-mono rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 transition">
+                        <i class="fa-brands fa-python"></i>
+                        <span class="hidden sm:inline">0-Clics</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- AUTO-RECONNECT BANNER (Appears when IndexedDB remembers data/prizes_config.json) -->
+        <div id="reconnectBanner" class="hidden bg-gradient-to-r from-cyan-950/90 via-slate-900 to-cyan-950/90 border border-cyan-500/50 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 neon-border-cyan">
+            <div class="flex items-start sm:items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shrink-0">
+                    <i class="fa-solid fa-plug-circle-check text-lg"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-white">Archivo <code class="font-mono text-cyan-300">data/prizes_config.json</code> recordado</h3>
+                    <p class="text-xs text-slate-300 mt-0.5">
+                        Haz clic en el botón de la derecha para autorizar lectura/escritura directa en 1 clic sin volver a buscar la carpeta.
+                    </p>
+                </div>
+            </div>
+            <button onclick="reconnectSavedHandle()"
+                class="shrink-0 px-4 py-2.5 rounded-lg bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-extrabold text-xs sm:text-sm transition shadow-lg flex items-center justify-center gap-2">
+                <i class="fa-solid fa-bolt"></i>
+                Conectar Ahora con 1 Clic
+            </button>
+        </div>
+
+        <!-- KPI SUMMARY & HELPER BANNER -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Active Prizes KPI -->
+            <div class="bg-arcade-card border border-arcade-border rounded-xl p-4 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Premios Habilitados</p>
+                    <div class="flex items-baseline gap-2 mt-1">
+                        <span id="kpiEnabledCount" class="text-2xl font-extrabold text-emerald-400 font-mono">4 / 6</span>
+                        <span class="text-xs text-slate-400">slots activos</span>
+                    </div>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                    <i class="fa-solid fa-check-double text-lg"></i>
+                </div>
+            </div>
+
+            <!-- Trending Prize KPI -->
+            <div class="bg-arcade-card border border-arcade-border rounded-xl p-4 flex items-center justify-between">
+                <div class="truncate pr-2">
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Premio en Tendencia</p>
+                    <p id="kpiTrendingName" class="text-base font-bold text-amber-400 truncate mt-1">Ninguno marcado</p>
+                </div>
+                <div class="w-10 h-10 shrink-0 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+                    <i class="fa-solid fa-fire text-lg"></i>
+                </div>
+            </div>
+
+            <!-- Average Record KPI -->
+            <div class="bg-arcade-card border border-arcade-border rounded-xl p-4 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-400 uppercase tracking-wider">Promedio Récord Activo</p>
+                    <div class="flex items-baseline gap-2 mt-1">
+                        <span id="kpiAvgRecord" class="text-2xl font-extrabold text-cyan-400 font-mono">1274</span>
+                        <span class="text-xs text-slate-400">pts</span>
+                    </div>
+                </div>
+                <div class="w-10 h-10 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                    <i class="fa-solid fa-trophy text-lg"></i>
+                </div>
+            </div>
+
+            <!-- View Switcher (Cards vs Live JSON) -->
+            <div class="bg-arcade-card border border-arcade-border rounded-xl p-3 flex flex-col justify-center gap-2">
+                <span class="text-xs font-medium text-slate-400 uppercase tracking-wider px-1">Modo de Vista</span>
+                <div class="grid grid-cols-2 gap-1.5 bg-slate-900 p-1 rounded-lg border border-slate-800">
+                    <button id="tabBtnCards" onclick="switchView('cards')"
+                        class="py-1.5 px-3 rounded-md text-xs font-semibold bg-cyan-500 text-slate-950 transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-grip"></i> Tarjetas (6)
+                    </button>
+                    <button id="tabBtnJson" onclick="switchView('json')"
+                        class="py-1.5 px-3 rounded-md text-xs font-semibold text-slate-300 hover:text-white transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-code"></i> Código JSON
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- QUICK WORKFLOW GUIDE -->
+        <div class="bg-slate-900/70 border border-slate-800 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-slate-300">
+            <div class="flex items-start sm:items-center gap-2.5">
+                <i class="fa-solid fa-circle-info text-cyan-400 text-base mt-0.5 sm:mt-0"></i>
+                <span id="workflowHintText">
+                    <strong>Conexión Automática a <code class="text-cyan-300">data/prizes_config.json</code>:</strong> Si el panel está en la raíz del proyecto, carga <code class="text-cyan-300">./data/prizes_config.json</code> automáticamente y memoriza el permiso en IndexedDB para guardar con <strong>Ctrl + S</strong>.
+                </span>
+            </div>
+            <span id="unsavedIndicator" class="hidden shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-500/15 text-rose-300 border border-rose-500/30 font-medium">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping"></span>
+                Cambios sin guardar
+            </span>
+        </div>
+
+        <!-- VIEW 1: 6-SLOT INTERACTIVE CARDS GRID -->
+        <section id="viewCards" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <!-- Dynamically populated by renderCards() -->
+        </section>
+
+        <!-- VIEW 2: LIVE JSON INSPECTOR & RAW EDITOR -->
+        <section id="viewJson" class="hidden space-y-4">
+            <div class="bg-arcade-card border border-arcade-border rounded-xl overflow-hidden shadow-xl">
+                <div class="px-5 py-3.5 bg-slate-900 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-file-code text-cyan-400"></i>
+                        <h2 class="text-sm font-bold text-white font-mono">user://prizes_config.json</h2>
+                        <span class="text-xs text-slate-400">(Sincronizado en tiempo real)</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="applyRawJsonChanges()"
+                            class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 transition">
+                            <i class="fa-solid fa-check mr-1"></i> Aplicar texto JSON a las Tarjetas
+                        </button>
+                        <button onclick="copyRawJson()"
+                            class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+                            <i class="fa-regular fa-copy mr-1"></i> Copiar JSON
+                        </button>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <textarea id="rawJsonTextarea" rows="26" spellcheck="false"
+                        class="w-full font-mono text-xs sm:text-sm bg-slate-950 text-emerald-300 p-4 rounded-lg border border-slate-800 focus:outline-none focus:border-cyan-500 leading-relaxed"></textarea>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- PYTHON AUTO-BRIDGE MODAL (Zero-Click Local Server Option) -->
+    <div id="bridgeModal" class="fixed inset-0 z-50 hidden bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-arcade-card border border-slate-700 rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl">
+            <div class="px-5 py-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <i class="fa-brands fa-python text-amber-400 text-lg"></i>
+                    <h3 class="text-sm sm:text-base font-bold text-white">Modo Servidor Auto-Puente (Lectura y Guardado con 0 Clics)</h3>
+                </div>
+                <button onclick="toggleBridgeModal(false)" class="text-slate-400 hover:text-white px-2 py-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4 text-xs sm:text-sm text-slate-300">
+                <p>
+                    Por seguridad, cuando abres un archivo con <code class="text-amber-300 font-mono">file:///</code>, el navegador pide 1 clic de confirmación para escribir en el disco. Si deseas que el panel lea y guarde en <code class="text-cyan-300 font-mono">data/prizes_config.json</code> de forma <strong>100% instantánea al abrir la página sin tocar ningún botón de conectar</strong>, guarda este pequeño script como <code class="text-emerald-300 font-mono">admin_server.py</code> junto a tu <code class="font-mono">panel.html</code> y ejecútalo:
+                </p>
+                <div class="relative">
+                    <pre id="pythonServerCode" class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 font-mono text-[11px] text-emerald-300 overflow-x-auto leading-relaxed">import http.server, json, os
+
+PORT = 8090
+JSON_PATH = os.path.join("data", "prizes_config.json")
+
+class Handler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        if self.path.startswith("/api/prizes"):
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.end_headers()
+            with open(JSON_PATH, "rb") as f:
+                self.wfile.write(f.read())
+            return
+        return super().do_GET()
+
+    def do_POST(self):
+        if self.path.startswith("/api/prizes"):
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length).decode("utf-8")
+            os.makedirs("data", exist_ok=True)
+            with open(JSON_PATH, "w", encoding="utf-8") as f:
+                f.write(body)
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"ok":true}')
+            return
+
+print(f"Panel Crazy Box activo en: http://localhost:{PORT}/panel.html")
+http.server.HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()</pre>
+                    <button onclick="copyPythonScript()" class="absolute top-2.5 right-2.5 px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-cyan-300 border border-slate-700">
+                        <i class="fa-regular fa-copy mr-1"></i> Copiar Script
+                    </button>
+                </div>
+                <div class="bg-slate-900/90 border border-slate-800 rounded-lg p-3 text-xs text-slate-400">
+                    Ejecuta en terminal: <code class="text-white font-mono">python admin_server.py</code> y abre <code class="text-cyan-300 font-mono">http://localhost:8090/panel.html</code>. El panel detectará automáticamente la API <code class="font-mono">/api/prizes</code>.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-slate-800/80 bg-slate-950/60 py-4 mt-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+            <span>SEGADEX Crazy Box — Etapa 1 & 2 Herramienta de Configuración Local</span>
+            <span class="font-mono">Vinculado a res://data/prizes_config.json</span>
+        </div>
+    </footer>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toastContainer" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- APPLICATION LOGIC -->
+    <script>
+        // --- 1. INITIAL DEFAULT DATA (Exact match with user's prizes_config.json + record_fijo) ---
+        const DEFAULT_PRIZES = [
+            {
+                "comercio": {
+                    "restaurante": "Burger King",
+                    "sucursales": ["Centro", "Zona Sur", "Plaza de Comidas"],
+                    "ubicacion_maps": "https://maps.app.goo.gl/ejemplo1"
+                },
+                "descripcion": "Hamburguesa clásica doble carne con queso y papas fritas.",
+                "habilitado": true,
+                "id": 1,
+                "media": {
+                    "link_imagen_web": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600&q=80",
+                    "ruta_imagen_local": "res://assets/images/premios/hamburguesa.png",
+                    "ruta_video_intro": "res://assets/videos/premios/hamburguesa_intro.ogv"
+                },
+                "nombre": "Premio 1 - hamburguesa",
+                "orden": 1,
+                "record": 1093,
+                "record_fijo": 1100,
+                "tendencia": false
+            },
+            {
+                "comercio": {
+                    "restaurante": "Fast Food Express",
+                    "sucursales": ["Avenida Principal"],
+                    "ubicacion_maps": "https://maps.app.goo.gl/ejemplo2"
+                },
+                "descripcion": "Porción familiar de salchipapas con aderezos de la casa.",
+                "habilitado": true,
+                "id": 2,
+                "media": {
+                    "link_imagen_web": "https://images.unsplash.com/photo-1585109649139-366815a0d713?auto=format&fit=crop&w=600&q=80",
+                    "ruta_imagen_local": "res://assets/images/premios/salchipapa.png",
+                    "ruta_video_intro": ""
+                },
+                "nombre": "Premio 2 - salchipapa",
+                "orden": 2,
+                "record": 1193,
+                "record_fijo": 1200,
+                "tendencia": false
+            },
+            {
+                "comercio": {
+                    "restaurante": "El Buen Asador",
+                    "sucursales": ["Zona Norte"],
+                    "ubicacion_maps": "https://maps.app.goo.gl/ejemplo3"
+                },
+                "descripcion": "Corte de carne a la parrilla, chorizo, morcilla y guarnición.",
+                "habilitado": true,
+                "id": 3,
+                "media": {
+                    "link_imagen_web": "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80",
+                    "ruta_imagen_local": "res://assets/images/premios/parrilla.png",
+                    "ruta_video_intro": "res://assets/videos/premios/parrilla_intro.ogv"
+                },
+                "nombre": "Premio 3 - parrilla personal",
+                "orden": 3,
+                "record": 1316,
+                "record_fijo": 1300,
+                "tendencia": false
+            },
+            {
+                "comercio": {
+                    "restaurante": "Bebidas Tradicionales",
+                    "sucursales": ["Mercado Central"],
+                    "ubicacion_maps": ""
+                },
+                "descripcion": "Bebida tradicional de la región, servida bien fría.",
+                "habilitado": false,
+                "id": 4,
+                "media": {
+                    "link_imagen_web": "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&w=600&q=80",
+                    "ruta_imagen_local": "res://assets/images/premios/chuquisaquenita.png",
+                    "ruta_video_intro": ""
+                },
+                "nombre": "Premio 4 - chuquisaqueñita",
+                "orden": 4,
+                "record": 1400,
+                "record_fijo": 1400,
+                "tendencia": false
+            },
+            {
+                "comercio": {
+                    "restaurante": "ChoriLoco",
+                    "sucursales": ["Food Truck Centro", "Feria Dominical"],
+                    "ubicacion_maps": "https://maps.app.goo.gl/ejemplo5"
+                },
+                "descripcion": "Dos choripanes clásicos con chimichurri especial.",
+                "habilitado": true,
+                "id": 5,
+                "media": {
+                    "link_imagen_web": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=600&q=80",
+                    "ruta_imagen_local": "res://assets/images/premios/choripan.png",
+                    "ruta_video_intro": "res://assets/videos/premios/choripan_intro.ogv"
+                },
+                "nombre": "Premio 5 - Choripanes",
+                "orden": 5,
+                "record": 1493,
+                "record_fijo": 1500,
+                "tendencia": false
+            },
+            {
+                "comercio": {
+                    "restaurante": "Jugos y Más",
+                    "sucursales": ["Patio de Comidas"],
+                    "ubicacion_maps": ""
+                },
+                "descripcion": "Jarra de 2 litros de refresco casero de temporada.",
+                "habilitado": false,
+                "id": 6,
+                "media": {
+                    "link_imagen_web": "https://images.unsplash.com/photo-1556881286-fc6915169721?auto=format&fit=crop&w=600&q=80",
+                    "ruta_imagen_local": "res://assets/images/premios/refresco.png",
+                    "ruta_video_intro": ""
+                },
+                "nombre": "Premio 6 - jarra de refresco",
+                "orden": 6,
+                "record": 1600,
+                "record_fijo": 1600,
+                "tendencia": false
+            }
+        ];
+
+        // --- 2. STATE VARIABLES ---
+        let prizesData = JSON.parse(JSON.stringify(DEFAULT_PRIZES));
+        let fileHandle = null; // Stores FileSystemFileHandle when connected directly
+        let savedDbHandle = null; // Handle retrieved from IndexedDB waiting for 1-click permission
+        let pythonBridgeActive = false; // True if /api/prizes is reachable
+        let localImagePreviews = {}; // Stores temporary ObjectURLs when user picks a local image file
+        let openDetailsMap = {}; // Tracks which card's commercial/media accordion is expanded
+        let hasUnsavedChanges = false;
+
+        // --- 2B. INDEXED-DB HELPER FOR PERSISTING FILE HANDLE ACROSS RELOADS ---
+        const IDB_NAME = 'crazybox_admin_db';
+        const IDB_STORE = 'file_handles';
+        const IDB_KEY = 'data_prizes_config_json';
+
+        function openHandleDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(IDB_NAME, 1);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(IDB_STORE)) {
+                        db.createObjectStore(IDB_STORE);
+                    }
+                };
+                req.onsuccess = (e) => resolve(e.target.result);
+                req.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function saveHandleToIndexedDB(handle) {
+            try {
+                const db = await openHandleDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(IDB_STORE, 'readwrite');
+                    tx.objectStore(IDB_STORE).put(handle, IDB_KEY);
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = (e) => reject(e.target.error);
+                });
+            } catch (e) {
+                console.warn('No se pudo guardar handle en IndexedDB:', e);
+            }
+        }
+
+        async function getHandleFromIndexedDB() {
+            try {
+                const db = await openHandleDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(IDB_STORE, 'readonly');
+                    const req = tx.objectStore(IDB_STORE).get(IDB_KEY);
+                    req.onsuccess = () => resolve(req.result || null);
+                    req.onerror = () => resolve(null);
+                });
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // --- 3. INITIALIZATION & AUTOMATIC CONNECTION TO data/prizes_config.json ---
+        window.onload = async function() {
+            // Setup fallback file input listener
+            document.getElementById('fallbackFileInput').addEventListener('change', handleFallbackFileSelect);
+
+            // Global Ctrl+S shortcut for instant saving
+            window.addEventListener('keydown', function(e) {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                    e.preventDefault();
+                    saveToConnectedFile();
+                }
+            });
+
+            // Try loading last session from localStorage first as immediate fallback
+            const savedCache = localStorage.getItem('crazybox_prizes_cache');
+            if (savedCache) {
+                try {
+                    const parsed = JSON.parse(savedCache);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        prizesData = normalizePrizesArray(parsed);
+                    }
+                } catch (e) {
+                    console.warn("No se pudo restaurar caché previa:", e);
+                }
+            }
+
+            renderCards();
+            updateKPIs();
+            syncRawJsonTextarea();
+
+            // STEP A: Try automatic connection via Python Zero-Click Bridge (/api/prizes)
+            const bridgeLoaded = await tryLoadFromPythonBridge();
+            if (bridgeLoaded) return;
+
+            // STEP B: Try automatic fetch from relative './data/prizes_config.json' (or '../data/prizes_config.json')
+            await tryAutoFetchRelativeJson();
+
+            // STEP C: Check IndexedDB for previously linked FileSystemFileHandle (data/prizes_config.json)
+            await tryRestoreIndexedDBHandle();
+        };
+
+        async function tryLoadFromPythonBridge() {
+            if (window.location.protocol === 'file:') return false;
+            try {
+                const res = await fetch('/api/prizes', { cache: 'no-store' });
+                if (res.ok) {
+                    const parsed = await res.json();
+                    if (Array.isArray(parsed)) {
+                        pythonBridgeActive = true;
+                        prizesData = normalizePrizesArray(parsed);
+                        hasUnsavedChanges = false;
+                        document.getElementById('unsavedIndicator').classList.add('hidden');
+                        updateConnectionBadge('data/prizes_config.json (Auto-Puente 0 Clics)', 'emerald');
+                        renderCards();
+                        updateKPIs();
+                        syncRawJsonTextarea();
+                        showToast('Conectado automáticamente a data/prizes_config.json (Modo 0 Clics).', 'emerald');
+                        return true;
+                    }
+                }
+            } catch (_) {
+                // Not running admin_server.py
+            }
+            return false;
+        }
+
+        async function tryAutoFetchRelativeJson() {
+            const candidatePaths = ['./data/prizes_config.json', 'data/prizes_config.json', '../data/prizes_config.json'];
+            for (const relPath of candidatePaths) {
+                try {
+                    const res = await fetch(relPath, { cache: 'no-store' });
+                    if (res.ok) {
+                        const parsed = await res.json();
+                        if (Array.isArray(parsed)) {
+                            prizesData = normalizePrizesArray(parsed);
+                            localStorage.setItem('crazybox_prizes_cache', JSON.stringify(prizesData));
+                            updateConnectionBadge('data/prizes_config.json (Lectura Automática)', 'cyan');
+                            renderCards();
+                            updateKPIs();
+                            syncRawJsonTextarea();
+                            showToast('Datos cargados automáticamente desde data/prizes_config.json', 'cyan');
+                            return true;
+                        }
+                    }
+                } catch (_) {
+                    // Under file:// protocol, Chromium blocks fetch() by CORS; IndexedDB handle below handles it
+                }
+            }
+            return false;
+        }
+
+        async function tryRestoreIndexedDBHandle() {
+            if (!('showOpenFilePicker' in window)) return;
+            const handle = await getHandleFromIndexedDB();
+            if (!handle) {
+                updateConnectionBadge('Sin vincular (Pulsa Vincular data/prizes_config.json una vez)', 'amber');
+                return;
+            }
+
+            savedDbHandle = handle;
+            try {
+                const perm = await handle.queryPermission({ mode: 'readwrite' });
+                if (perm === 'granted') {
+                    // Automatically read the file without any user click!
+                    fileHandle = handle;
+                    await readFromActiveFileHandle(false);
+                } else {
+                    // Show 1-click reconnect banner & button (no file dialog needed)
+                    document.getElementById('reconnectBanner').classList.remove('hidden');
+                    document.getElementById('btnQuickReconnect').classList.remove('hidden');
+                    updateConnectionBadge(`Recordado: data/${handle.name} (1 clic para activar)`, 'cyan');
+                }
+            } catch (e) {
+                console.warn('Error verificando permiso del handle guardado:', e);
+            }
+        }
+
+        async function reconnectSavedHandle() {
+            if (!savedDbHandle) return connectJsonFile();
+            try {
+                const perm = await savedDbHandle.requestPermission({ mode: 'readwrite' });
+                if (perm === 'granted') {
+                    fileHandle = savedDbHandle;
+                    document.getElementById('reconnectBanner').classList.add('hidden');
+                    document.getElementById('btnQuickReconnect').classList.add('hidden');
+                    await readFromActiveFileHandle(true);
+                } else {
+                    showToast('Permiso denegado. Haz clic en Vincular para elegir el archivo.', 'rose');
+                }
+            } catch (err) {
+                connectJsonFile();
+            }
+        }
+
+        async function readFromActiveFileHandle(notify = true) {
+            if (!fileHandle) return;
+            try {
+                const file = await fileHandle.getFile();
+                const content = await file.text();
+                const parsed = JSON.parse(content);
+                if (!Array.isArray(parsed)) {
+                    throw new Error('El archivo no contiene un arreglo JSON de premios.');
+                }
+                prizesData = normalizePrizesArray(parsed);
+                hasUnsavedChanges = false;
+                document.getElementById('unsavedIndicator').classList.add('hidden');
+                document.getElementById('reconnectBanner').classList.add('hidden');
+                document.getElementById('btnQuickReconnect').classList.add('hidden');
+                document.getElementById('btnConnectLabel').innerHTML = `Cambiar archivo (<code class="font-mono">data/${escapeHtml(file.name)}</code>)`;
+
+                localStorage.setItem('crazybox_prizes_cache', JSON.stringify(prizesData));
+                updateConnectionBadge(`Conectado directo: data/${file.name}`, 'emerald');
+                renderCards();
+                updateKPIs();
+                syncRawJsonTextarea();
+                if (notify) {
+                    showToast(`Conectado y sincronizado con data/${file.name}`, 'emerald');
+                }
+            } catch (err) {
+                showToast(`No se pudo leer data/prizes_config.json: ${err.message}`, 'rose');
+            }
+        }
+
+        async function reloadFromConnectedSource() {
+            if (pythonBridgeActive) {
+                await tryLoadFromPythonBridge();
+                return;
+            }
+            if (fileHandle) {
+                await readFromActiveFileHandle(true);
+                return;
+            }
+            if (savedDbHandle) {
+                await reconnectSavedHandle();
+                return;
+            }
+            const fetched = await tryAutoFetchRelativeJson();
+            if (!fetched) {
+                connectJsonFile();
+            }
+        }
+
+        // Ensures every prize object has record_fijo, media, and comercio structures intact
+        function normalizePrizesArray(arr) {
+            return arr.map((item, idx) => {
+                const rec = Number(item.record ?? (1000 + (idx + 1) * 100));
+                const recFijo = Number(item.record_fijo ?? rec);
+                return {
+                    comercio: {
+                        restaurante: item.comercio?.restaurante ?? "",
+                        sucursales: Array.isArray(item.comercio?.sucursales) ? item.comercio.sucursales : [],
+                        ubicacion_maps: item.comercio?.ubicacion_maps ?? ""
+                    },
+                    descripcion: item.descripcion ?? "",
+                    habilitado: Boolean(item.habilitado),
+                    id: Number(item.id ?? (idx + 1)),
+                    media: {
+                        link_imagen_web: item.media?.link_imagen_web ?? "",
+                        ruta_imagen_local: item.media?.ruta_imagen_local ?? `res://assets/images/premios/premio_${idx + 1}.png`,
+                        ruta_video_intro: item.media?.ruta_video_intro ?? ""
+                    },
+                    nombre: item.nombre ?? `Premio ${idx + 1}`,
+                    orden: Number(item.orden ?? (idx + 1)),
+                    record: rec,
+                    record_fijo: recFijo,
+                    tendencia: Boolean(item.tendencia)
+                };
+            });
+        }
+
+        // --- 4. RENDER 6 PRIZE CARDS ---
+        function renderCards() {
+            const container = document.getElementById('viewCards');
+            container.innerHTML = '';
+
+            prizesData.forEach((prize, index) => {
+                const isEnabled = prize.habilitado;
+                const isTrending = prize.tendencia;
+                const isExpanded = Boolean(openDetailsMap[prize.id]);
+
+                // Determine image source to preview
+                const previewSrc = localImagePreviews[prize.id] || prize.media.link_imagen_web || `https://placehold.co/600x340/1e293b/38bdf8?text=${encodeURIComponent(prize.nombre)}`;
+                const diffRecord = prize.record - prize.record_fijo;
+                const diffBadgeColor = diffRecord < 0 ? 'text-amber-400 bg-amber-500/10 border-amber-500/30' : (diffRecord > 0 ? 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30' : 'text-slate-400 bg-slate-800 border-slate-700');
+                const diffText = diffRecord === 0 ? 'Igual al fijo' : (diffRecord > 0 ? `+${diffRecord} vs fijo` : `${diffRecord} pts jugados`);
+
+                const card = document.createElement('div');
+                card.className = `rounded-2xl transition-all duration-200 flex flex-col overflow-hidden border ${
+                    isEnabled 
+                        ? 'bg-arcade-card border-slate-700/90 shadow-xl' 
+                        : 'bg-slate-900/50 border-slate-800/80 opacity-75 hover:opacity-95'
+                } ${isTrending ? 'ring-2 ring-amber-500/70 neon-border-amber' : ''}`;
+
+                card.innerHTML = `
+                    <!-- Card Top Header: ID, Enable Toggle, Trend Toggle -->
+                    <div class="px-4 py-3 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2">
+                            <span class="px-2.5 py-1 rounded-lg font-mono text-xs font-bold ${isEnabled ? 'bg-cyan-500 text-slate-950' : 'bg-slate-800 text-slate-400'}">
+                                SLOT #${prize.id}
+                            </span>
+                            <span class="text-xs font-mono text-slate-400">Orden: ${prize.orden}</span>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <!-- Trending Button -->
+                            <button onclick="toggleTendencia(${index})" title="Marcar como Premio en Tendencia"
+                                class="px-2.5 py-1 rounded-lg text-xs font-semibold border transition flex items-center gap-1 ${
+                                    isTrending 
+                                        ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold shadow-sm shadow-amber-500/30' 
+                                        : 'bg-slate-800/80 text-slate-400 border-slate-700 hover:text-amber-300'
+                                }">
+                                <i class="fa-solid fa-fire"></i>
+                                <span>Tendencia</span>
+                            </button>
+
+                            <!-- Enable/Disable Switch -->
+                            <button onclick="toggleHabilitado(${index})"
+                                class="px-3 py-1 rounded-lg text-xs font-bold border transition flex items-center gap-1.5 ${
+                                    isEnabled 
+                                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30' 
+                                        : 'bg-rose-500/20 text-rose-300 border-rose-500/40 hover:bg-rose-500/30'
+                                }">
+                                <span class="w-2 h-2 rounded-full ${isEnabled ? 'bg-emerald-400' : 'bg-rose-400'}"></span>
+                                <span>${isEnabled ? 'HABILITADO' : 'DESHABILITADO'}</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Image Preview & Quick Local Image Picker -->
+                    <div class="relative h-44 w-full bg-slate-950 overflow-hidden group">
+                        <img src="${previewSrc}" alt="${prize.nombre}"
+                            onerror="this.onerror=null; this.src='https://placehold.co/600x340/0f172a/f59e0b?text=Sin+Imagen';"
+                            class="w-full h-full object-cover object-center group-hover:scale-105 transition duration-300">
+                        
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent"></div>
+
+                        <!-- Local File Upload Trigger Overlay -->
+                        <div class="absolute top-2.5 right-2.5 flex gap-1.5">
+                            <label class="cursor-pointer px-2.5 py-1.5 rounded-lg bg-slate-900/90 hover:bg-cyan-500 hover:text-slate-950 text-slate-200 text-xs font-semibold border border-slate-700 backdrop-blur-md transition flex items-center gap-1.5 shadow-lg">
+                                <i class="fa-solid fa-image"></i>
+                                <span>Cargar Imagen</span>
+                                <input type="file" accept="image/*" class="hidden" onchange="handleLocalImagePick(event, ${index})">
+                            </label>
+                        </div>
+
+                        <!-- Restaurant Badge & Difference Pill -->
+                        <div class="absolute bottom-2.5 left-3 right-3 flex items-center justify-between gap-2">
+                            <span class="px-2.5 py-0.5 rounded-md bg-slate-900/90 border border-slate-700 text-xs font-medium text-slate-200 truncate">
+                                <i class="fa-solid fa-store text-amber-400 mr-1"></i>${prize.comercio.restaurante || 'Sin comercio'}
+                            </span>
+                            <span class="px-2 py-0.5 rounded-md border text-[11px] font-mono ${diffBadgeColor}">
+                                ${diffText}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Card Body: Main Fields -->
+                    <div class="p-4 space-y-4 flex-1 flex flex-col justify-between">
+                        <div class="space-y-3">
+                            <!-- Prize Name -->
+                            <div>
+                                <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Nombre del Premio</label>
+                                <input type="text" value="${escapeHtml(prize.nombre)}"
+                                    oninput="updateField(${index}, 'nombre', this.value)"
+                                    class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 focus:border-cyan-400 focus:outline-none text-sm font-bold text-white">
+                            </div>
+
+                            <!-- Description -->
+                            <div>
+                                <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Descripción</label>
+                                <textarea rows="2" oninput="updateField(${index}, 'descripcion', this.value)"
+                                    class="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 focus:border-cyan-400 focus:outline-none text-xs text-slate-200 resize-none">${escapeHtml(prize.descripcion)}</textarea>
+                            </div>
+
+                            <!-- RECORDS CONTROL BOX (Actual vs Fijo) -->
+                            <div class="grid grid-cols-2 gap-3 p-3 rounded-xl bg-slate-900/90 border border-slate-800">
+                                <!-- Récord Actual (Variable) -->
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="text-[11px] font-bold uppercase text-cyan-400">Récord Actual</label>
+                                        <span class="text-[10px] font-mono text-slate-500">"record"</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <button onclick="stepRecord(${index}, 'record', -1)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-l-lg border border-r-0 border-slate-700 font-mono text-xs font-bold">-1</button>
+                                        <input type="number" id="input-record-${index}" value="${prize.record}"
+                                            oninput="updateNumericField(${index}, 'record', this.value)"
+                                            class="w-full py-1.5 text-center bg-slate-950 border-y border-slate-700 font-mono text-base font-extrabold text-cyan-300 focus:outline-none">
+                                        <button onclick="stepRecord(${index}, 'record', 1)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-r-lg border border-l-0 border-slate-700 font-mono text-xs font-bold">+1</button>
+                                    </div>
+                                </div>
+
+                                <!-- Récord Fijo (Referencial F5) -->
+                                <div>
+                                    <div class="flex items-center justify-between mb-1">
+                                        <label class="text-[11px] font-bold uppercase text-amber-400">Récord Fijo</label>
+                                        <button onclick="syncSinglePrizeToFixed(${index})" title="Copiar Récord Fijo hacia Récord Actual"
+                                            class="text-[10px] font-mono text-amber-300 hover:underline flex items-center gap-0.5">
+                                            <i class="fa-solid fa-arrow-left"></i> Igualar
+                                        </button>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <button onclick="stepRecord(${index}, 'record_fijo', -10)" class="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-l-lg border border-r-0 border-slate-700 font-mono text-xs font-bold">-10</button>
+                                        <input type="number" id="input-record-fijo-${index}" value="${prize.record_fijo}"
+                                            oninput="updateNumericField(${index}, 'record_fijo', this.value)"
+                                            class="w-full py-1.5 text-center bg-slate-950 border-y border-slate-700 font-mono text-base font-extrabold text-amber-300 focus:outline-none">
+                                        <button onclick="stepRecord(${index}, 'record_fijo', 10)" class="px-2 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-r-lg border border-l-0 border-slate-700 font-mono text-xs font-bold">+10</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Expandable Section Toggle for Comercio & Media Paths -->
+                        <div class="pt-2 border-t border-slate-800/80">
+                            <button onclick="toggleCardDetails(${prize.id})"
+                                class="w-full py-1.5 px-3 rounded-lg bg-slate-900/70 hover:bg-slate-800 text-xs font-semibold text-slate-300 flex items-center justify-between transition">
+                                <span class="flex items-center gap-2">
+                                    <i class="fa-solid fa-sliders text-cyan-400"></i>
+                                    Comercio, Sucursales y Rutas Godot
+                                </span>
+                                <i class="fa-solid fa-chevron-${isExpanded ? 'up' : 'down'} text-slate-400"></i>
+                            </button>
+
+                            <!-- Collapsible Content -->
+                            <div id="details-${prize.id}" class="${isExpanded ? 'block' : 'hidden'} mt-3 space-y-3 pt-2 border-t border-slate-800/60 text-xs">
+                                <!-- Comercio: Restaurante -->
+                                <div>
+                                    <label class="block text-[11px] text-slate-400 mb-1">Restaurante / Auspiciador</label>
+                                    <input type="text" value="${escapeHtml(prize.comercio.restaurante)}"
+                                        oninput="updateNestedField(${index}, 'comercio', 'restaurante', this.value)"
+                                        class="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-700 text-slate-200">
+                                </div>
+
+                                <!-- Comercio: Sucursales (comma separated) -->
+                                <div>
+                                    <label class="block text-[11px] text-slate-400 mb-1">Sucursales (separadas por coma)</label>
+                                    <input type="text" value="${escapeHtml(prize.comercio.sucursales.join(', '))}"
+                                        onchange="updateSucursales(${index}, this.value)"
+                                        placeholder="Centro, Zona Sur, Plaza..."
+                                        class="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-700 text-slate-200">
+                                </div>
+
+                                <!-- Comercio: Google Maps Link -->
+                                <div>
+                                    <label class="block text-[11px] text-slate-400 mb-1">Ubicación Google Maps URL</label>
+                                    <input type="text" value="${escapeHtml(prize.comercio.ubicacion_maps)}"
+                                        oninput="updateNestedField(${index}, 'comercio', 'ubicacion_maps', this.value)"
+                                        class="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-700 font-mono text-[11px] text-cyan-300">
+                                </div>
+
+                                <!-- Media: Ruta Imagen Local Godot -->
+                                <div>
+                                    <label class="block text-[11px] text-slate-400 mb-1">Ruta Imagen Local (Godot <code class="text-amber-300">res://</code>)</label>
+                                    <input type="text" id="ruta-local-${index}" value="${escapeHtml(prize.media.ruta_imagen_local)}"
+                                        oninput="updateNestedField(${index}, 'media', 'ruta_imagen_local', this.value)"
+                                        class="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-700 font-mono text-[11px] text-emerald-300">
+                                </div>
+
+                                <!-- Media: Link Imagen Web -->
+                                <div>
+                                    <label class="block text-[11px] text-slate-400 mb-1">URL Imagen Web (Vista previa / Externa)</label>
+                                    <input type="text" value="${escapeHtml(prize.media.link_imagen_web)}"
+                                        onchange="updateWebImage(${index}, this.value)"
+                                        class="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-700 font-mono text-[11px] text-slate-300">
+                                </div>
+
+                                <!-- Media: Ruta Video Intro -->
+                                <div>
+                                    <label class="block text-[11px] text-slate-400 mb-1">Ruta Video Intro (<code class="text-amber-300">.ogv</code>)</label>
+                                    <input type="text" value="${escapeHtml(prize.media.ruta_video_intro)}"
+                                        oninput="updateNestedField(${index}, 'media', 'ruta_video_intro', this.value)"
+                                        class="w-full px-2.5 py-1.5 rounded bg-slate-950 border border-slate-700 font-mono text-[11px] text-slate-300">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        // --- 5. DATA MUTATION HANDLERS ---
+        function markChanged() {
+            hasUnsavedChanges = true;
+            document.getElementById('unsavedIndicator').classList.remove('hidden');
+            localStorage.setItem('crazybox_prizes_cache', JSON.stringify(prizesData));
+            updateKPIs();
+            syncRawJsonTextarea();
+        }
+
+        function updateField(index, field, value) {
+            prizesData[index][field] = value;
+            markChanged();
+        }
+
+        function updateNumericField(index, field, value) {
+            const num = parseInt(value, 10);
+            prizesData[index][field] = isNaN(num) ? 0 : Math.max(0, num);
+            markChanged();
+        }
+
+        function stepRecord(index, field, delta) {
+            const current = Number(prizesData[index][field] || 0);
+            prizesData[index][field] = Math.max(0, current + delta);
+            markChanged();
+            renderCards();
+        }
+
+        function syncSinglePrizeToFixed(index) {
+            prizesData[index].record = Number(prizesData[index].record_fijo);
+            markChanged();
+            renderCards();
+            showToast(`Slot #${prizesData[index].id}: Récord igualado a ${prizesData[index].record_fijo}`, 'info');
+        }
+
+        function resetAllRecordsToFixed() {
+            prizesData.forEach(p => {
+                p.record = Number(p.record_fijo);
+            });
+            markChanged();
+            renderCards();
+            showToast('Todos los récords actuales fueron restaurados a su Récord Fijo (Simulación F5).', 'amber');
+        }
+
+        function toggleHabilitado(index) {
+            prizesData[index].habilitado = !prizesData[index].habilitado;
+            markChanged();
+            renderCards();
+        }
+
+        function toggleTendencia(index) {
+            const currentState = prizesData[index].tendencia;
+            // Allow toggling or setting single trending prize
+            prizesData[index].tendencia = !currentState;
+            markChanged();
+            renderCards();
+        }
+
+        function updateNestedField(index, group, key, value) {
+            prizesData[index][group][key] = value;
+            markChanged();
+        }
+
+        function updateSucursales(index, commaString) {
+            const list = commaString.split(',').map(s => s.trim()).filter(Boolean);
+            prizesData[index].comercio.sucursales = list;
+            markChanged();
+        }
+
+        function updateWebImage(index, url) {
+            prizesData[index].media.link_imagen_web = url.trim();
+            delete localImagePreviews[prizesData[index].id];
+            markChanged();
+            renderCards();
+        }
+
+        function toggleCardDetails(prizeId) {
+            openDetailsMap[prizeId] = !openDetailsMap[prizeId];
+            renderCards();
+        }
+
+        // Handles selecting an image file from disk to preview & auto-fill Godot path
+        function handleLocalImagePick(event, index) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const prize = prizesData[index];
+            const objectUrl = URL.createObjectURL(file);
+            localImagePreviews[prize.id] = objectUrl;
+
+            // Automatically set the Godot res:// local path using the picked file name
+            const cleanFileName = file.name.replace(/\s+/g, '_');
+            prize.media.ruta_imagen_local = `res://assets/images/premios/${cleanFileName}`;
+            openDetailsMap[prize.id] = true; // Open accordion so user sees the updated path
+
+            markChanged();
+            renderCards();
+            showToast(`Imagen "${file.name}" cargada y ruta res:// actualizada.`, 'emerald');
+        }
+
+        // --- 6. KPI & JSON INSPECTOR SYNC ---
+        function updateKPIs() {
+            const enabledList = prizesData.filter(p => p.habilitado);
+            document.getElementById('kpiEnabledCount').textContent = `${enabledList.length} / ${prizesData.length}`;
+
+            const trendingList = prizesData.filter(p => p.tendencia);
+            document.getElementById('kpiTrendingName').textContent = trendingList.length > 0
+                ? trendingList.map(t => t.nombre).join(', ')
+                : 'Ninguno marcado';
+
+            if (enabledList.length > 0) {
+                const sum = enabledList.reduce((acc, p) => acc + Number(p.record || 0), 0);
+                document.getElementById('kpiAvgRecord').textContent = Math.round(sum / enabledList.length);
+        // --- 7. FILE SYSTEM ACCESS API (DIRECT READ/WRITE TO data/prizes_config.json) ---
+        async function connectJsonFile() {
+            if ('showOpenFilePicker' in window) {
+                try {
+                    const [handle] = await window.showOpenFilePicker({
+                        id: 'crazybox_data_json',
+                        startIn: 'documents',
+                        types: [{
+                            description: 'Archivo JSON de Premios Crazy Box (data/prizes_config.json)',
+                            accept: { 'application/json': ['.json'] }
+                        }],
+                        multiple: false
+                    });
+
+                    fileHandle = handle;
+                    savedDbHandle = handle;
+                    await saveHandleToIndexedDB(handle);
+                    await readFromActiveFileHandle(true);
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        showToast(`No se pudo abrir el archivo: ${err.message}`, 'rose');
+                    }
+                }
+            } else {
+                // Fallback for Firefox / non-Chromium browsers
+                document.getElementById('fallbackFileInput').click();
+            }
+        }
+
+        function handleFallbackFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (!Array.isArray(parsed)) throw new Error("Formato inválido");
+                    prizesData = normalizePrizesArray(parsed);
+                    updateConnectionBadge(`data/${file.name} (Modo Descarga)`, 'cyan');
+                    renderCards();
+                    updateKPIs();
+                    syncRawJsonTextarea();
+                    showToast(`Archivo "${file.name}" cargado en memoria.`, 'cyan');
+                } catch (err) {
+                    showToast(`Error al leer JSON: ${err.message}`, 'rose');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function saveToConnectedFile() {
+            const jsonOutput = JSON.stringify(prizesData, null, '\t');
+
+            // 1. If Python Zero-Click Auto-Bridge is active, POST directly to /api/prizes
+            if (pythonBridgeActive) {
+                try {
+                    const res = await fetch('/api/prizes', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+                        body: jsonOutput
+                    });
+                    if (res.ok) {
+                        hasUnsavedChanges = false;
+                        document.getElementById('unsavedIndicator').classList.add('hidden');
+                        localStorage.setItem('crazybox_prizes_cache', jsonOutput);
+                        showToast('¡Guardado instantáneo en data/prizes_config.json! Presiona F5 en Godot.', 'emerald');
+                        return;
+                    }
+                } catch (err) {
+                    showToast(`Error en puente Python: ${err.message}`, 'rose');
+                }
+            }
+
+            // 2. If we have a remembered handle in IndexedDB but haven't activated it this session, request permission & write!
+            if (!fileHandle && savedDbHandle) {
+                try {
+                    const perm = await savedDbHandle.requestPermission({ mode: 'readwrite' });
+                    if (perm === 'granted') {
+                        fileHandle = savedDbHandle;
+                        document.getElementById('reconnectBanner').classList.add('hidden');
+                        document.getElementById('btnQuickReconnect').classList.add('hidden');
+                    }
+                } catch (_) {}
+            }
+
+            // 3. If we have a live FileSystemFileHandle, write directly to data/prizes_config.json!
+            if (fileHandle) {
+                try {
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(jsonOutput);
+                    await writable.close();
+
+                    hasUnsavedChanges = false;
+                    document.getElementById('unsavedIndicator').classList.add('hidden');
+                    localStorage.setItem('crazybox_prizes_cache', jsonOutput);
+                    updateConnectionBadge(`Conectado directo: data/${fileHandle.name}`, 'emerald');
+                    showToast('¡Guardado directo en data/prizes_config.json! Presiona F5 en Godot.', 'emerald');
+                    return;
+                } catch (err) {
+                    showToast(`Error al guardar en disco: ${err.message}`, 'rose');
+                }
+            }
+
+            // 4. First time saving: open save picker in project folder and remember handle in IndexedDB
+            if ('showSaveFilePicker' in window) {
+                try {
+                    fileHandle = await window.showSaveFilePicker({
+                        id: 'crazybox_data_json',
+                        suggestedName: 'prizes_config.json',
+                        types: [{
+                            description: 'Archivo JSON (data/prizes_config.json)',
+                            accept: { 'application/json': ['.json'] }
+                        }]
+                    });
+                    savedDbHandle = fileHandle;
+                    await saveHandleToIndexedDB(fileHandle);
+
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(jsonOutput);
+                    await writable.close();
+
+                    hasUnsavedChanges = false;
+                    document.getElementById('unsavedIndicator').classList.add('hidden');
+                    updateConnectionBadge(`Conectado directo: data/${fileHandle.name}`, 'emerald');
+                    showToast('Archivo data/prizes_config.json guardado y memorizado para próximas sesiones.', 'emerald');
+                    return;
+                } catch (err) {
+                    if (err.name === 'AbortError') return;
+                }
+            }
+
+            // Final fallback: direct download
+            downloadJsonCopy();
+        }
+
+        function downloadJsonCopy() {
+            const jsonOutput = JSON.stringify(prizesData, null, '\t');
+            const blob = new Blob([jsonOutput], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'prizes_config.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            hasUnsavedChanges = false;
+            document.getElementById('unsavedIndicator').classList.add('hidden');
+            showToast('Descargando copia de prizes_config.json...', 'cyan');
+        }
+
+        function updateConnectionBadge(statusText, mode = 'emerald') {
+            const badge = document.getElementById('connectionBadge');
+            if (mode === 'emerald') {
+                badge.className = "inline-flex items-center gap-1.5 text-xs font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/40";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> ${escapeHtml(statusText)}`;
+            } else if (mode === 'cyan') {
+                badge.className = "inline-flex items-center gap-1.5 text-xs font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/15 text-cyan-300 border border-cyan-500/40";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-cyan-400"></span> ${escapeHtml(statusText)}`;
+            } else {
+                badge.className = "inline-flex items-center gap-1.5 text-xs font-mono px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/40";
+                badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> ${escapeHtml(statusText)}`;
+            }
+        }
+
+        // --- 8. UTILITIES (CLIPBOARD, TABS, TOASTS) ---
+        function switchView(view) {
+            const cardsSec = document.getElementById('viewCards');
+            const jsonSec = document.getElementById('viewJson');
+            const btnCards = document.getElementById('tabBtnCards');
+            const btnJson = document.getElementById('tabBtnJson');
+
+            if (view === 'cards') {
+                cardsSec.classList.remove('hidden');
+                jsonSec.classList.add('hidden');
+                btnCards.className = "py-1.5 px-3 rounded-md text-xs font-semibold bg-cyan-500 text-slate-950 transition flex items-center justify-center gap-1.5";
+                btnJson.className = "py-1.5 px-3 rounded-md text-xs font-semibold text-slate-300 hover:text-white transition flex items-center justify-center gap-1.5";
+                renderCards();
+            } else {
+                syncRawJsonTextarea();
+                cardsSec.classList.add('hidden');
+                jsonSec.classList.remove('hidden');
+                btnJson.className = "py-1.5 px-3 rounded-md text-xs font-semibold bg-cyan-500 text-slate-950 transition flex items-center justify-center gap-1.5";
+                btnCards.className = "py-1.5 px-3 rounded-md text-xs font-semibold text-slate-300 hover:text-white transition flex items-center justify-center gap-1.5";
+            }
+        }
+
+        function copyTextToClipboard(text, successMsg) {
+            const tempInput = document.createElement('textarea');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showToast(successMsg, 'cyan');
+        }
+
+        function copyGodotPath() {
+            const path = '%APPDATA%\\Godot\\app_userdata\\CrazyBox_e1';
+            copyTextToClipboard(path, 'Ruta copiada: Pégala en la ventana al pulsar "Conectar prizes_config.json"');
+        }
+
+        function copyRawJson() {
+            const jsonStr = JSON.stringify(prizesData, null, '\t');
+            copyTextToClipboard(jsonStr, 'Código JSON copiado al portapapeles.');
+        }
+
+        function toggleBridgeModal(show) {
+            const modal = document.getElementById('bridgeModal');
+            if (show) {
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function copyPythonScript() {
+            const code = document.getElementById('pythonServerCode').innerText;
+            copyTextToClipboard(code, 'Script admin_server.py copiado. Guárdalo en la raíz de tu proyecto.');
+        }
+
+        function escapeHtml(str) {
+            if (typeof str !== 'string') return '';
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function showToast(message, color = 'cyan') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+
+            const palette = {
+                emerald: 'bg-slate-900 border-emerald-500/60 text-emerald-300',
+                amber: 'bg-slate-900 border-amber-500/60 text-amber-300',
+                rose: 'bg-slate-900 border-rose-500/60 text-rose-300',
+                cyan: 'bg-slate-900 border-cyan-500/60 text-cyan-300'
+            };
+
+            const icons = {
+                emerald: 'fa-circle-check text-emerald-400',
+                amber: 'fa-rotate text-amber-400',
+                rose: 'fa-triangle-exclamation text-rose-400',
+                cyan: 'fa-circle-info text-cyan-400'
+            };
+
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl backdrop-blur-md text-xs font-medium transition-all duration-300 ${palette[color] || palette.cyan}`;
+            toast.innerHTML = `
+                <i class="fa-solid ${icons[color] || icons.cyan} text-base shrink-0"></i>
+                <span class="leading-snug">${escapeHtml(message)}</span>
+            `;
+
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(8px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3800);
+        }
+    </script>
+</body>
+</html>

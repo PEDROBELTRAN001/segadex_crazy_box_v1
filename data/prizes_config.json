@@ -1,0 +1,137 @@
+[
+	{
+		"comercio": {
+			"restaurante": "Burger King",
+			"sucursales": [
+				"Centro",
+				"Zona Sur",
+				"Plaza de Comidas"
+			],
+			"ubicacion_maps": "https://maps.app.goo.gl/ejemplo1"
+		},
+		"descripcion": "Hamburguesa clásica doble carne con queso y papas fritas.",
+		"habilitado": true,
+		"id": 1.0,
+		"media": {
+			"link_imagen_web": "https://midominio.com/img/hamburguesa.jpg",
+			"ruta_imagen_local": "res://assets/images/premios/hamburguesa.png",
+			"ruta_video_intro": "res://assets/videos/premios/hamburguesa_intro.ogv"
+		},
+		"nombre": "Premio 1 - hamburguesa",
+		"orden": 1.0,
+		"record": 1098,
+		"record_fijo": 1100.0,
+		"tendencia": false
+	},
+	{
+		"comercio": {
+			"restaurante": "Fast Food Express",
+			"sucursales": [
+				"Avenida Principal"
+			],
+			"ubicacion_maps": "https://maps.app.goo.gl/ejemplo2"
+		},
+		"descripcion": "Porción familiar de salchipapas con aderezos de la casa.",
+		"habilitado": true,
+		"id": 2.0,
+		"media": {
+			"link_imagen_web": "https://midominio.com/img/salchipapa.jpg",
+			"ruta_imagen_local": "res://assets/images/premios/salchipapa.png",
+			"ruta_video_intro": ""
+		},
+		"nombre": "Premio 2 - salchipapa",
+		"orden": 2.0,
+		"record": 1199,
+		"record_fijo": 1200.0,
+		"tendencia": false
+	},
+	{
+		"comercio": {
+			"restaurante": "El Buen Asador",
+			"sucursales": [
+				"Zona Norte"
+			],
+			"ubicacion_maps": "https://maps.app.goo.gl/ejemplo3"
+		},
+		"descripcion": "Corte de carne a la parrilla, chorizo, morcilla y guarnición.",
+		"habilitado": true,
+		"id": 3.0,
+		"media": {
+			"link_imagen_web": "https://midominio.com/img/parrilla.jpg",
+			"ruta_imagen_local": "res://assets/images/premios/parrilla.png",
+			"ruta_video_intro": "res://assets/videos/premios/parrilla_intro.ogv"
+		},
+		"nombre": "Premio 3 - parrilla personal",
+		"orden": 3.0,
+		"record": 1299,
+		"record_fijo": 1300.0,
+		"tendencia": false
+	},
+	{
+		"comercio": {
+			"restaurante": "Bebidas Tradicionales",
+			"sucursales": [
+				"Mercado Central"
+			],
+			"ubicacion_maps": ""
+		},
+		"descripcion": "Bebida tradicional de la región, servida bien fría.",
+		"habilitado": false,
+		"id": 4.0,
+		"media": {
+			"link_imagen_web": "https://midominio.com/img/chuquisaquenita.jpg",
+			"ruta_imagen_local": "res://assets/images/premios/chuquisaquenita.png",
+			"ruta_video_intro": ""
+		},
+		"nombre": "Premio 4 - chuquisaqueñita",
+		"orden": 4.0,
+		"record": 1400.0,
+		"record_fijo": 1400.0,
+		"tendencia": false
+	},
+	{
+		"comercio": {
+			"restaurante": "ChoriLoco",
+			"sucursales": [
+				"Food Truck Centro",
+				"Feria Dominical"
+			],
+			"ubicacion_maps": "https://maps.app.goo.gl/ejemplo5"
+		},
+		"descripcion": "Dos choripanes clásicos con chimichurri especial.",
+		"habilitado": true,
+		"id": 5.0,
+		"media": {
+			"link_imagen_web": "https://midominio.com/img/choripan.jpg",
+			"ruta_imagen_local": "res://assets/images/premios/choripan.png",
+			"ruta_video_intro": "res://assets/videos/premios/choripan_intro.ogv"
+		},
+		"nombre": "Premio 5 - Choripanes",
+		"orden": 5.0,
+		"record": 1499,
+		"record_fijo": 1500.0,
+		"tendencia": false
+	},
+	{
+		"comercio": {
+			"restaurante": "Jugos y Más",
+			"sucursales": [
+				"Patio de Comidas"
+			],
+			"ubicacion_maps": ""
+		},
+		"descripcion": "Jarra de 2 litros de refresco casero de temporada.",
+		"habilitado": false,
+		"id": 6.0,
+		"media": {
+			"link_imagen_web": "",
+			"ruta_imagen_local": "res://assets/images/premios/refresco.png",
+			"ruta_video_intro": ""
+		},
+		"nombre": "Premio 6 - jarra de refresco",
+		"orden": 6.0,
+		"record": 1600.0,
+		"record_fijo": 1600.0,
+		"tendencia": false
+	}
+]
