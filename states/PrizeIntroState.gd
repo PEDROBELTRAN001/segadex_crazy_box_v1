@@ -2,8 +2,7 @@ class_name PrizeIntroState
 extends BaseState
 
 func enter() -> void:
-	print("Entrando a PRIZE_INTRO - Presentando el premio seleccionado")
-	# Aquí en el futuro se mostrará la animación del premio elegido
+	print("Entrando a PRIZE_INTRO - Presentando los premios disponibles y sus récords")
 
 func update_input(event: InputEvent) -> void:
 	# ENTER: Avanzar por la transición normal del estado actual[cite: 4]

@@ -28,6 +28,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func change_state(new_state: States) -> void:
 	if _is_transition_valid(current_state, new_state):
+		if new_state == States.DEMO_IDLE:
+			SessionManager.reset_session()
 		current_state = new_state
 		state_changed.emit(current_state)
 	else:
@@ -38,10 +40,10 @@ func _is_transition_valid(from_state: States, to_state: States) -> bool:
 	if to_state == States.DEMO_IDLE: return true # 'R' reinicia desde cualquier lugar[cite: 9]
 	
 	match from_state:
-		States.DEMO_IDLE: return to_state == States.PRIZE_SELECT
-		States.PRIZE_SELECT: return to_state == States.PRIZE_INTRO
+		States.DEMO_IDLE: return to_state == States.PRIZE_INTRO
+		States.PRIZE_SELECT: return false # Solo permite el regreso a DEMO_IDLE.
 		States.PRIZE_INTRO: return to_state == States.READY_TO_HIT
 		States.READY_TO_HIT: return to_state == States.SCORE_RISE
 		States.SCORE_RISE: return to_state in [States.SHOW_WIN, States.SHOW_LOSE]
-		States.SHOW_WIN, States.SHOW_LOSE: return to_state == States.DEMO_IDLE
+		States.SHOW_WIN, States.SHOW_LOSE: return to_state == States.PRIZE_SELECT
 	return false

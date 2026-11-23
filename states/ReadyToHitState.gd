@@ -5,9 +5,7 @@ var typed_score_str: String = ""
 
 func enter() -> void:
 	typed_score_str = ""
-	var prize_name = SessionManager.selected_prize.get("nombre", "Desconocido")
-	var record = SessionManager.initial_record
-	print("Entrando a READY_TO_HIT | Premio: %s (Récord: %d)" % [prize_name, record])
+	print("Entrando a READY_TO_HIT - El golpe determinará los premios disponibles")
 	print("Escribe el puntaje del golpe con los números del teclado y presiona ENTER:")
 
 func update_input(event: InputEvent) -> void:
@@ -41,6 +39,7 @@ func update_input(event: InputEvent) -> void:
 		if typed_score_str != "":
 			var final_score = int(typed_score_str)
 			SessionManager.set_hit_score(final_score)
+			SessionManager.confirm_hit()
 			print("Puntaje confirmado: %d -> Pasando a SCORE_RISE" % final_score)
 			StateManager.change_state(StateManager.States.SCORE_RISE)
 		else:

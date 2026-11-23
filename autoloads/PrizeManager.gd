@@ -32,26 +32,8 @@ func save_prizes() -> void:
 # Se ejecuta al presionar F5 (ui_reload_json)
 func reload_prizes() -> void:
 	load_prizes()
-	
-	# Copiar el valor referencial de record_fijo hacia record
-	for p in prizes:
-		var fijo: int = int(p.get("record_fijo", p.get("record", 1000)))
-		p["record_fijo"] = fijo
-		p["record"] = fijo
-		
-	save_prizes()
-	
-	# Si había un premio seleccionado en la sesión actual, actualizar también su récord en memoria
-	if SessionManager.has_selected_prize():
-		var current_id = int(SessionManager.selected_prize.get("id", -1))
-		for p in prizes:
-			if int(p.get("id", -1)) == current_id:
-				SessionManager.select_prize(p)
-				break
-	else:
-		SessionManager.session_updated.emit()
-		
-	print("JSON recargado con F5: 'record' restaurado al valor de 'record_fijo'.")
+	SessionManager.session_updated.emit()
+	print("JSON recargado. La jugada actual conserva su configuración inicial.")
 
 func get_enabled_prizes() -> Array:
 	var enabled = []

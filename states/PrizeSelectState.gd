@@ -2,29 +2,32 @@ class_name PrizeSelectState
 extends BaseState
 
 func enter() -> void:
-	print("Entrando a PRIZE_SELECT - Selecciona un premio habilitado (Teclas 1 al 6)")
+	if SessionManager.last_result == "WIN":
+		print("PRIZE_SELECT - Elige un premio alcanzado (1-6) y confirma con ENTER")
+	else:
+		print("PRIZE_SELECT - Sin premio disponible. ENTER para volver al inicio")
 
 func update_input(event: InputEvent) -> void:
-	# Teclas 1 a 6: Seleccionar únicamente premios habilitados
-	for i in range(1, 7):
-		if Input.is_physical_key_pressed(KEY_0 + i) and event.is_pressed() and not event.is_echo():
-			_try_select_prize(i)
+	if event is InputEventKey and event.is_pressed() and not event.is_echo():
+		var id: int = -1
+		if event.keycode >= KEY_1 and event.keycode <= KEY_6:
+			id = event.keycode - KEY_0
+		elif event.keycode >= KEY_KP_1 and event.keycode <= KEY_KP_6:
+			id = event.keycode - KEY_KP_0
+		if id != -1:
+			_try_select_prize(id)
 			return
-			
-	# ENTER: Confirmar el premio guardado en sesión y pasar a PRIZE_INTRO
 	if event.is_action_pressed("ui_accept"):
-		if SessionManager.has_selected_prize():
-			StateManager.change_state(StateManager.States.PRIZE_INTRO)
+		if SessionManager.last_result != "WIN" or SessionManager.has_selected_prize():
+			if SessionManager.has_selected_prize():
+				print("Premio confirmado: ", SessionManager.selected_prize.get("nombre", ""))
+			StateManager.change_state(StateManager.States.DEMO_IDLE)
 		else:
-			print("Acción denegada: Debes seleccionar un premio habilitado primero.")
+			print("Selecciona primero uno de los premios alcanzados.")
 
 func _try_select_prize(id: int) -> void:
-	var enabled_prizes = PrizeManager.get_enabled_prizes()
-	for p in enabled_prizes:
-		if p["id"] == id:
-			# Guardamos el premio y su récord actual en la sesión persistente
-			SessionManager.select_prize(p)
-			print("Premio guardado en sesión -> ID: %d | Nombre: %s | Récord: %d" % [p["id"], p["nombre"], p["record"]])
+	for prize in SessionManager.eligible_prizes:
+		if int(prize.get("id", -1)) == id and SessionManager.select_prize(prize):
+			print("Premio seleccionado: ", prize.get("nombre", ""))
 			return
-			
-	print("El premio ", id, " está deshabilitado o no existe en la configuración.")
+	print("Premio no disponible: está deshabilitado, no alcanzaste su récord o perdiste.")

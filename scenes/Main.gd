@@ -19,58 +19,48 @@ func _ready() -> void:
 	_setup_ui()
 	StateManager.state_changed.connect(_on_state_changed)
 	StateManager.diagnostic_toggled.connect(_on_diagnostic_toggled)
-	
-	# Actualizar textos en pantalla cada vez que cambie algún dato de la sesión
 	SessionManager.session_updated.connect(_on_session_updated)
-	
 	_on_state_changed(StateManager.current_state)
 
 func _setup_ui() -> void:
-	# 1. Etiqueta grande del estado actual
+	var scroll := ScrollContainer.new()
+	scroll.size = get_viewport_rect().size
+	add_child(scroll)
+	get_viewport().size_changed.connect(func(): scroll.size = get_viewport_rect().size)
+	var content := VBoxContainer.new()
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 16)
+	scroll.add_child(content)
 	state_label = Label.new()
-	state_label.add_theme_font_size_override("font_size", 42)
-	state_label.position = Vector2(50, 30)
-	add_child(state_label)
-	
-	# 2. Etiqueta de apoyo para ver la jugada actual (guía rápida en pantalla)
+	state_label.add_theme_font_size_override("font_size", 36)
+	content.add_child(state_label)
 	session_info_label = Label.new()
-	session_info_label.add_theme_font_size_override("font_size", 24)
-	session_info_label.position = Vector2(50, 95)
+	session_info_label.add_theme_font_size_override("font_size", 22)
+	session_info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	session_info_label.modulate = Color(0.7, 0.9, 1.0)
-	add_child(session_info_label)
-	
-	# 3. Etiqueta completa del modo diagnóstico (F1)
+	content.add_child(session_info_label)
 	diagnostic_label = Label.new()
 	diagnostic_label.add_theme_font_size_override("font_size", 18)
-	diagnostic_label.position = Vector2(50, 210)
+	diagnostic_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	diagnostic_label.modulate = Color(1, 0.9, 0.2)
-	diagnostic_label.visible = false
-	add_child(diagnostic_label)
+	diagnostic_label.visible = StateManager.is_diagnostic_visible
+	content.add_child(diagnostic_label)
 
 func _input(event: InputEvent) -> void:
-	if current_state_node and current_state_node.has_method("update_input"):
+	if event is InputEventKey and event.is_echo():
+		return
+	if current_state_node:
 		current_state_node.update_input(event)
-		
-	# Si se recarga el JSON con F5, refrescar el diagnóstico
-	if event.is_action_pressed("ui_reload_json") and diagnostic_label.visible:
-		_update_diagnostic_text()
 
 func _on_state_changed(new_state: int) -> void:
 	if current_state_node:
 		current_state_node.exit()
 		current_state_node.queue_free()
-	
-	var state_script = state_scenes[new_state]
-	current_state_node = state_script.new() as BaseState
+	current_state_node = state_scenes[new_state].new() as BaseState
 	add_child(current_state_node)
-	
-	var state_name = StateManager.States.keys()[new_state]
-	state_label.text = "ESTADO ACTUAL: " + state_name
+	state_label.text = "ESTADO ACTUAL: " + StateManager.States.keys()[new_state]
 	current_state_node.enter()
-	
-	_update_session_info_text()
-	if diagnostic_label.visible:
-		_update_diagnostic_text()
+	_on_session_updated()
 
 func _on_session_updated() -> void:
 	_update_session_info_text()
@@ -79,27 +69,34 @@ func _on_session_updated() -> void:
 
 func _update_session_info_text() -> void:
 	var state = StateManager.current_state
-	var prize_name = SessionManager.selected_prize.get("nombre", "Ninguno")
-	var record = SessionManager.initial_record
-	var score = SessionManager.hit_score
-	var result = SessionManager.last_result if SessionManager.last_result != "" else "Pendiente"
-	
-	var info = "Premio: %s (Récord: %d) | Golpe: %d | Resultado: %s\n" % [prize_name, record, score, result]
-	
+	var info := "Golpe: %d | Resultado: %s | Premio: %s\n" % [
+		SessionManager.hit_score,
+		SessionManager.last_result if SessionManager.last_result != "" else "Pendiente",
+		SessionManager.selected_prize.get("nombre", "Sin elegir")]
 	match state:
 		StateManager.States.DEMO_IDLE:
-			info += "-> Presiona ENTER para comenzar."
-		StateManager.States.PRIZE_SELECT:
-			info += "-> Presiona 1-6 para elegir premio habilitado y luego ENTER."
+			info += "ENTER: comenzar. F1: diagnóstico. F5: recargar premios. R: reiniciar."
+			if PrizeManager.get_enabled_prizes().is_empty():
+				info += "\nNo hay premios habilitados: modifica el JSON y presiona F5."
 		StateManager.States.PRIZE_INTRO:
-			info += "-> Presiona ENTER para ir al golpe."
+			info += "Premios de esta jugada (ENTER para continuar):\n"
+			for prize in SessionManager.round_prizes:
+				info += "[%d] %s | Récord: %d\n" % [int(prize["id"]), prize["nombre"], int(prize["record"])]
 		StateManager.States.READY_TO_HIT:
-			info += "-> Escribe el puntaje con los números (Backspace para borrar) y presiona ENTER."
+			info += "Escribe el golpe (0-9999). Backspace: borrar. ENTER: confirmar."
 		StateManager.States.SCORE_RISE:
-			info += "-> Comparando puntaje y descontando récords..."
-		StateManager.States.SHOW_WIN, StateManager.States.SHOW_LOSE:
-			info += "-> Fin de jugada. Presiona ENTER para volver a DEMO_IDLE."
-			
+			info += "Evaluando el golpe... ENTER: resultado. W/L: probar victoria/derrota."
+		StateManager.States.SHOW_WIN:
+			info += "¡Ganaste! ENTER para elegir entre los premios alcanzados."
+		StateManager.States.SHOW_LOSE:
+			info += "No ganaste un premio. ENTER para continuar a PRIZE_SELECT."
+		StateManager.States.PRIZE_SELECT:
+			if SessionManager.last_result == "WIN":
+				info += "Elige con 1-6 (fila superior o teclado numérico). ENTER: confirmar y terminar.\n"
+				for prize in SessionManager.eligible_prizes:
+					info += "[%d] %s | Récord: %d\n" % [int(prize["id"]), prize["nombre"], int(prize["record"])]
+			else:
+				info += "Sin premios para reclamar. ENTER: terminar y volver a DEMO_IDLE."
 	session_info_label.text = info
 
 func _on_diagnostic_toggled(is_visible: bool) -> void:
@@ -108,34 +105,14 @@ func _on_diagnostic_toggled(is_visible: bool) -> void:
 		_update_diagnostic_text()
 
 func _update_diagnostic_text() -> void:
-	var state_name = StateManager.States.keys()[StateManager.current_state]
-	var text = "=== MODO DIAGNÓSTICO (F1 para ocultar) ===\n"
-	text += "Estado actual de la máquina: " + state_name + "\n"
-	
-	if SessionManager.has_selected_prize():
-		var p = SessionManager.selected_prize
-		var p_status = "HABILITADO" if p.get("habilitado", false) else "DESHABILITADO"
-		text += "Premio seleccionado: [ID %d] %s (%s)\n" % [p["id"], p["nombre"], p_status]
-		text += "Récord del premio al iniciar jugada: %d\n" % SessionManager.initial_record
-	else:
-		text += "Premio seleccionado: Ninguno\n"
-		text += "Récord del premio al iniciar jugada: -\n"
-		
-	text += "Puntaje del golpe: %d\n" % SessionManager.hit_score
-	text += "Resultado WIN/LOSE: %s\n\n" % (SessionManager.last_result if SessionManager.last_result != "" else "N/A")
-	
-	text += "--- Valores actuales de los 6 premios ---\n"
-	for p in PrizeManager.prizes:
-		var estado = "HABILITADO" if p.get("habilitado", false) else "DESHABILITADO"
-		var rec_actual = int(p.get("record", 0))
-		var rec_fijo = int(p.get("record_fijo", rec_actual))
-		text += "ID %d | %s | Récord: %d (Fijo: %d) | %s\n" % [int(p["id"]), p["nombre"], rec_actual, rec_fijo, estado]	
-		text += "\n--- Cambio producido por la última jugada ---\n"
-	
-	if SessionManager.last_changes_log.is_empty():
-		text += "(Aún no se ha completado ninguna jugada en esta sesión)\n"
-	else:
-		for log_line in SessionManager.last_changes_log:
-			text += log_line + "\n"
-			
+	var text := "=== DIAGNÓSTICO (F1) ===\nEstado: %s\n" % StateManager.States.keys()[StateManager.current_state]
+	text += "Golpe: %d | Confirmado: %s | Resultado: %s\n" % [SessionManager.hit_score, str(SessionManager.hit_confirmed), SessionManager.last_result]
+	text += "Premio seleccionado: %s | Récord al iniciar: %d\n" % [SessionManager.selected_prize.get("nombre", "Ninguno"), SessionManager.initial_record]
+	text += "Premios de la jugada: %d | Alcanzados: %d\n" % [SessionManager.round_prizes.size(), SessionManager.eligible_prizes.size()]
+	text += "La configuración recargada aplica a la siguiente jugada.\n--- Configuración actual ---\n"
+	for prize in PrizeManager.prizes:
+		text += "ID %d | %s | Récord: %d (Fijo: %d) | %s | Tendencia: %s | Orden: %d\n" % [
+			int(prize["id"]), prize["nombre"], int(prize["record"]), int(prize.get("record_fijo", prize["record"])),
+			"HABILITADO" if prize.get("habilitado", false) else "DESHABILITADO",
+			str(prize.get("tendencia", false)), int(prize.get("orden", 0))]
 	diagnostic_label.text = text

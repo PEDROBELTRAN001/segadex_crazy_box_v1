@@ -2,9 +2,9 @@ class_name ShowWinState
 extends BaseState
 
 func enter() -> void:
-	print("Entrando a SHOW_WIN - ¡Has ganado el premio!")
+	print("Entrando a SHOW_WIN - ¡Puedes elegir uno de los premios alcanzados!")
 
 func update_input(event: InputEvent) -> void:
-	# ENTER: Volver a DEMO_IDLE[cite: 4]
+	# ENTER: Elegir el premio con el golpe conservado.
 	if event.is_action_pressed("ui_accept"):
-		StateManager.change_state(StateManager.States.DEMO_IDLE)
+		StateManager.change_state(StateManager.States.PRIZE_SELECT)
